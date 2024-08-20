@@ -54,11 +54,13 @@ spec:
         securityContext: {{- omit .Values.worker.securityContext "enabled" | toYaml | nindent 10 }}
         {{- end }}
         image: {{ include "netbox.image" . | quote }}
-        command:
-        - /opt/netbox/venv/bin/python
-        - /opt/netbox/netbox/manage.py
-        - rqworker
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.worker.command }}
+        command: {{- include "common.tplvalues.render" (dict "value" .Values.worker.command "context" $) | nindent 10 }}
+        {{- end }}
+        {{- if .Values.worker.args }}
+        args: {{- include "common.tplvalues.render" (dict "value" .Values.worker.args "context" $) | nindent 10 }}
+        {{- end }}
         {{- with .Values.worker.extraEnvs }}
         env:
         {{- toYaml . | nindent 8 }}
@@ -74,6 +76,12 @@ spec:
           mountPath: /etc/netbox/config/ldap/ldap_config.py
           subPath: ldap_config.py
           readOnly: true
+        {{- if $.Values.remoteAuth.ldap.caCertData }}
+        - name: config
+          mountPath: /etc/netbox/config/ldap/ldap_ca.crt
+          subPath: ldap_ca.crt
+          readOnly: true
+        {{- end }}
         {{- end }}
         {{- end }}
         - name: config
@@ -175,20 +183,28 @@ spec:
       {{- with .Values.worker.extraVolumes }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
-      {{- with .Values.worker.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.worker.nodeSelector }}
+      nodeSelector: {{- include "common.tplvalues.render" ( dict "value" .Values.worker.nodeSelector "context" $) | nindent 8 }}
       {{- end }}
-      {{- with .Values.worker.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
+      {{- if .Values.worker.affinity }}
+      affinity: {{- include "common.tplvalues.render" ( dict "value" .Values.worker.affinity "context" $) | nindent 8 }}
       {{- end }}
-      {{- with .Values.worker.tolerations }}
-      tolerations:
-      {{- toYaml . | nindent 6 }}
+      {{- if .Values.worker.tolerations }}
+      tolerations: {{- include "common.tplvalues.render" (dict "value" .Values.worker.tolerations "context" .) | nindent 8 }}
       {{- end }}
-      {{- with .Values.worker.hostAliases }}
-      hostAliases:
-      {{- toYaml . | nindent 6 }}
+      {{- if .Values.worker.hostAliases }}
+      hostAliases: {{- include "common.tplvalues.render" (dict "value" .Values.worker.hostAliases "context" $) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.priorityClassName }}
+      priorityClassName: {{ .Values.worker.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.worker.schedulerName }}
+      schedulerName: {{ .Values.worker.schedulerName | quote }}
+      {{- end }}
+      {{- if .Values.worker.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- include "common.tplvalues.render" (dict "value" .Values.worker.topologySpreadConstraints "context" .) | nindent 8 }}
+      {{- end }}
+      {{- if .Values.worker.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
       {{- end }}
 {{- end }}

@@ -48,9 +48,13 @@ spec:
             securityContext: {{- omit .Values.housekeeping.securityContext "enabled" | toYaml | nindent 14 }}
             {{- end }}
             image: {{ include "netbox.image" . | quote }}
-            command:
-            {{- .Values.housekeeping.command | toYaml | nindent 14 }}
             imagePullPolicy: {{ .Values.image.pullPolicy }}
+            {{- if .Values.housekeeping.command }}
+            command: {{- include "common.tplvalues.render" (dict "value" .Values.housekeeping.command "context" $) | nindent 14 }}
+            {{- end }}
+            {{- if .Values.housekeeping.args }}
+            args: {{- include "common.tplvalues.render" (dict "value" .Values.housekeeping.args "context" $) | nindent 14 }}
+            {{- end }}
             {{- with .Values.housekeeping.extraEnvs }}
             env:
             {{- toYaml . | nindent 12 }}
@@ -66,6 +70,12 @@ spec:
               mountPath: /etc/netbox/config/ldap/ldap_config.py
               subPath: ldap_config.py
               readOnly: true
+            {{- if $.Values.remoteAuth.ldap.caCertData }}
+            - name: config
+              mountPath: /etc/netbox/config/ldap/ldap_ca.crt
+              subPath: ldap_ca.crt
+              readOnly: true
+            {{- end }}
             {{- end }}
             {{- end }}
             - name: config
@@ -170,7 +180,7 @@ spec:
           {{- end }}
           {{- with .Values.housekeeping.tolerations }}
           tolerations:
-          {{- toYaml . | nindent 10 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           restartPolicy: {{ .Values.housekeeping.restartPolicy }}
 {{- end -}}
